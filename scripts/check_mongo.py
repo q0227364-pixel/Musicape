@@ -19,9 +19,9 @@ def get_mongo_uri ():
 
     if mongo_host :
         if mongo_pass :
-            uri =f"mongodb://{mongo_user or 'mongo'}:{mongo_pass }@{mongo_host }:{mongo_port }/armedmusic?authSource=admin"
+            uri =f"mongodb://{mongo_user or 'mongo'}:{mongo_pass }@{mongo_host }:{mongo_port }/music?authSource=admin"
         else :
-            uri =f"mongodb://{mongo_host }:{mongo_port }/armedmusic"
+            uri =f"mongodb://{mongo_host }:{mongo_port }/music"
         return uri ,'CONSTRUCTED'
 
     return None ,None

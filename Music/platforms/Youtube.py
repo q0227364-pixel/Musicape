@@ -30,6 +30,7 @@ def convert_italic_unicode (text ):
     return text .translate (ITALIC_TO_REGULAR )
 
 from config import YT_API_KEY ,YTPROXY_URL as YTPROXY ,YOUTUBE_PROXY ,YOUTUBE_USE_PYTUBE ,YOUTUBE_INVIDIOUS_INSTANCES ,YOUTUBE_FALLBACK_SEARCH_LIMIT ,YOUTUBE_ENABLED ,YOUTUBE_PROXY_LIST
+COOKIEFILE_PATH =os.getenv('YT_COOKIES_PATH',None)
 
 logger =LOGGER (__name__ )
 
@@ -56,7 +57,9 @@ async def check_file_size (link ):
         proxy =_choose_proxy (0 )
         if proxy :
             cmd .extend (['--proxy',proxy ])
-        proc =await asyncio .create_subprocess_exec (*cmd ,stdout =asyncio .subprocess .PIPE ,stderr =asyncio .subprocess .PIPE )
+            if COOKIEFILE_PATH :
+                cmd.extend(['--cookies', COOKIEFILE_PATH])
+            proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         stdout ,stderr =await proc .communicate ()
         if proc .returncode !=0 :
             print (f'Error:\n{stderr .decode ()}')
@@ -111,6 +114,12 @@ def create_ydl (opts :dict ):
     o =opts .copy ()if isinstance (opts ,dict )else {}
     if JS_RUNTIMES_DICT and 'js_runtimes'not in o :
         o ['js_runtimes']=JS_RUNTIMES_DICT
+    # include cookiefile if provided via env var to support authenticated downloads
+    try:
+        if COOKIEFILE_PATH:
+            o['cookiefile'] = COOKIEFILE_PATH
+    except Exception:
+        pass
     return yt_dlp .YoutubeDL (o )
 
 def _choose_proxy (attempt :int =0 ):
@@ -459,12 +468,14 @@ class YouTubeAPI :
                 seen .add (f )
         deduped .extend (["bestaudio[ext=m4a]/bestaudio/best","bestaudio/best","best","18"])
 
-        for fmt in deduped :
+                for fmt in deduped :
             try :
                 cmd =['yt-dlp','-g','-f',fmt ,f'{link }']
                 proxy =_choose_proxy (0 )
                 if proxy :
                     cmd .extend (['--proxy',proxy ])
+                if COOKIEFILE_PATH :
+                    cmd .extend (['--cookies',COOKIEFILE_PATH])
                 proc =await asyncio .create_subprocess_exec (*cmd ,stdout =asyncio .subprocess .PIPE ,stderr =asyncio .subprocess .PIPE )
                 stdout ,stderr =await proc .communicate ()
                 if stdout :
@@ -489,7 +500,10 @@ class YouTubeAPI :
         if not YOUTUBE_ENABLED :
             logger .warning ('YouTube downloads disabled by configuration; skipping playlist fetch')
             return []
-        playlist =await shell_cmd (f'yt-dlp -i --get-id --flat-playlist --playlist-end {limit } --skip-download {link }')
+        cmd_str = f'yt-dlp -i --get-id --flat-playlist --playlist-end {limit } --skip-download {link }'
+        if COOKIEFILE_PATH :
+            cmd_str += f' --cookies "{COOKIEFILE_PATH}"'
+        playlist =await shell_cmd (cmd_str)
         try :
             result =playlist .split ('\n')
             for key in result :
@@ -1535,6 +1549,8 @@ class YouTubeAPI :
                         cmd [1 :1 ]=JS_RUNTIME_CLI
                     if YOUTUBE_PROXY :
                         cmd .extend (['--proxy',YOUTUBE_PROXY ])
+                    if COOKIEFILE_PATH :
+                        cmd.extend(['--cookies', COOKIEFILE_PATH])
                     proc =await asyncio .create_subprocess_exec (*cmd ,stdout =asyncio .subprocess .PIPE ,stderr =asyncio .subprocess .PIPE )
                     stdout ,stderr =await proc .communicate ()
                     if proc .returncode ==0 and stdout :
