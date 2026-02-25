@@ -3,7 +3,7 @@ from os import getenv
 
 from dotenv import load_dotenv
 from pyrogram import filters
-from urllib.parse import quote_plus  # для безопасной обработки пароля в URI
+from urllib.parse import quote_plus  # для безопасного экранирования пароля
 
 load_dotenv()
 
@@ -12,29 +12,29 @@ API_HASH = getenv("API_HASH", "6f9f6b8fb05ef1f4d9916e901f27bf52")
 
 BOT_TOKEN = getenv("BOT_TOKEN", "8507183742:AAGJNPeHy0WOCB06et_5KCMx8ZOB-vALnYU")
 
-# MongoDB конфиг — здесь фиксим проблему с authSource
+# MongoDB конфиг — обновлённый fallback с новым паролем
 _mongo_user = getenv("MONGOUSER", getenv("MONGO_INITDB_ROOT_USERNAME", "mongo"))
-_mongo_pass = getenv("MONGOPASSWORD", getenv("MONGO_INITDB_ROOT_PASSWORD", "TyIYFavtqzNXyzLvFBSvjmUiFiDqdHak"))
-_mongo_host = getenv("MONGOHOST", "mongodb.railway.internal")  # fallback, но Railway переопределит
+_mongo_pass = getenv(
+    "MONGOPASSWORD",
+    getenv("MONGO_INITDB_ROOT_PASSWORD", "YPkRtMNlXnzFSHeMDxgSJsnNeJtpKzuz")  # ← новый пароль здесь
+)
+_mongo_host = getenv("MONGOHOST", "mongodb.railway.internal")  # fallback, Railway переопределит
 _mongo_port = getenv("MONGOPORT", "27017")
 _mongo_db_name = getenv("MONGO_DB_NAME", "music")
 
-# Формируем MONGO_DB_URI правильно
+# Формируем MONGO_DB_URI — приоритет: переменные Railway
 if getenv("MONGO_URL"):
-    base_uri = getenv("MONGO_URL").rstrip("/")  # убираем лишний / в конце, если есть
-    
-    # Если в MONGO_URL уже есть query-параметры — добавляем authSource через &
+    base_uri = getenv("MONGO_URL").rstrip("/")
+    # Добавляем /music?authSource=admin, если их нет
     if "?" in base_uri:
         if "authSource=" not in base_uri:
             MONGO_DB_URI = base_uri + "&authSource=admin"
         else:
             MONGO_DB_URI = base_uri
     else:
-        # Нет query — добавляем /music?authSource=admin
         MONGO_DB_URI = base_uri + f"/{_mongo_db_name}?authSource=admin"
 
 elif getenv("MONGO_DB_URI"):
-    # Если есть MONGO_DB_URI — тоже проверяем и фиксим
     base_uri = getenv("MONGO_DB_URI").rstrip("/")
     if "?" in base_uri:
         if "authSource=" not in base_uri:
@@ -45,19 +45,16 @@ elif getenv("MONGO_DB_URI"):
         MONGO_DB_URI = base_uri + f"/{_mongo_db_name}?authSource=admin"
 
 else:
-    # Если ничего нет — строим вручную (как раньше, но правильно)
-    if _mongo_pass:
-        encoded_pass = quote_plus(_mongo_pass)  # безопасно экранируем пароль
-        MONGO_DB_URI = (
-            f"mongodb://{_mongo_user}:{encoded_pass}@{_mongo_host}:{_mongo_port}"
-            f"/{_mongo_db_name}?authSource=admin"
-        )
-    else:
-        MONGO_DB_URI = f"mongodb://{_mongo_host}:{_mongo_port}/{_mongo_db_name}"
+    # Ручной fallback — используем переменные или новый пароль
+    encoded_pass = quote_plus(_mongo_pass)
+    MONGO_DB_URI = (
+        f"mongodb://{_mongo_user}:{encoded_pass}@{_mongo_host}:{_mongo_port}"
+        f"/{_mongo_db_name}?authSource=admin"
+    )
 
 MONGO_DB_NAME = _mongo_db_name
 
-# Для отладки (можно потом закомментировать или удалить)
+# Отладка — всегда полезно видеть, что реально используется
 print(f"[CONFIG] MONGO_DB_URI: {MONGO_DB_URI.replace(_mongo_pass, '***HIDDEN***')}")
 
 YTPROXY_URL = getenv("YTPROXY_URL", None)
