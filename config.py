@@ -12,11 +12,11 @@ API_HASH = getenv("API_HASH", "6f9f6b8fb05ef1f4d9916e901f27bf52")
 
 BOT_TOKEN = getenv("BOT_TOKEN", "8507183742:AAGJNPeHy0WOCB06et_5KCMx8ZOB-vALnYU")
 
-# MongoDB конфиг — новый пароль в fallback
+# MongoDB конфиг — самый свежий пароль в fallback
 _mongo_user = getenv("MONGOUSER", getenv("MONGO_INITDB_ROOT_USERNAME", "mongo"))
 _mongo_pass = getenv(
     "MONGOPASSWORD",
-    getenv("MONGO_INITDB_ROOT_PASSWORD", "RRQzMeMjoYhIVZRBVpYxPZisUOnbaczG")  # ← самый свежий пароль
+    getenv("MONGO_INITDB_ROOT_PASSWORD", "mCavnAwYWjtRDNGmijdFlcHAQFRjnuTe")  # ← новый пароль здесь
 )
 _mongo_host = getenv("MONGOHOST", "mongodb.railway.internal")  # fallback, Railway подставит реальный
 _mongo_port = getenv("MONGOPORT", "27017")
@@ -53,8 +53,9 @@ else:
 
 MONGO_DB_NAME = _mongo_db_name
 
-# Обязательная отладка — чтобы видеть, что реально используется
+# Отладка — обязательно оставь, чтобы видеть реальную строку
 print(f"[CONFIG] MONGO_DB_URI: {MONGO_DB_URI.replace(_mongo_pass, '***HIDDEN***')}")
+
 
 YTPROXY_URL = getenv("YTPROXY_URL", None)
 YOUTUBE_PROXY = getenv("YOUTUBE_PROXY", None)
