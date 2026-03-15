@@ -1,18 +1,14 @@
 import re
 from os import getenv
-
 from dotenv import load_dotenv
-from pyrogram import filters
-from urllib.parse import quote_plus  # для безопасного экранирования пароля
+from urllib.parse import quote_plus
 
 load_dotenv()
 
 API_ID = int(getenv("API_ID", "21457002"))
 API_HASH = getenv("API_HASH", "6f9f6b8fb05ef1f4d9916e901f27bf52")
-
 BOT_TOKEN = getenv("BOT_TOKEN", "8507183742:AAGJNPeHy0WOCB06et_5KCMx8ZOB-vALnYU")
 
-# MongoDB конфиг — актуальный пароль + надёжная сборка URI
 _mongo_user = getenv("MONGOUSER", getenv("MONGO_INITDB_ROOT_USERNAME", "mongo"))
 _mongo_pass = getenv(
     "MONGOPASSWORD",
@@ -22,14 +18,10 @@ _mongo_host = getenv("MONGOHOST", "mongodb.railway.internal")
 _mongo_port = getenv("MONGOPORT", "27017")
 _mongo_db_name = getenv("MONGO_DB_NAME", "music")
 
-# Формируем MONGO_DB_URI надёжно
 if getenv("MONGO_URL"):
     base_uri = getenv("MONGO_URL").rstrip("/")
     if "?" in base_uri:
-        if "authSource=" not in base_uri:
-            MONGO_DB_URI = base_uri + "&authSource=admin"
-        else:
-            MONGO_DB_URI = base_uri
+        MONGO_DB_URI = base_uri + ("&authSource=admin" if "authSource=" not in base_uri else "")
     else:
         MONGO_DB_URI = base_uri + f"/{_mongo_db_name}?authSource=admin"
 else:
@@ -41,33 +33,30 @@ else:
 
 MONGO_DB_NAME = _mongo_db_name
 
-# Отладка MongoDB
-print(f"[CONFIG] MONGO_DB_URI: {MONGO_DB_URI.replace(_mongo_pass, '***HIDDEN***')}")
-
-# YouTube настройки — улучшены для обхода без кукисов
 YTPROXY_URL = getenv("YTPROXY_URL", None)
 YOUTUBE_PROXY = getenv("YOUTUBE_PROXY", None)
 
 def _bool_env(var, default=False):
-    val = getenv(var, str(default))
-    return str(val).lower() in ("1", "true", "yes")
+    val = getenv(var, str(default)).lower()
+    return val in ("1", "true", "yes", "on")
 
-YOUTUBE_USE_PYTUBE = _bool_env("YOUTUBE_USE_PYTUBE", True)   # ← обязательно True для обхода
+YOUTUBE_USE_PYTUBE = _bool_env("YOUTUBE_USE_PYTUBE", True)
 YOUTUBE_ENABLED = _bool_env("YOUTUBE_ENABLED", True)
 
-# Актуальный список Invidious на март 2026 — только живые инстансы
 YOUTUBE_INVIDIOUS_INSTANCES = [
-    "https://inv.tux.pizza",
-    "https://invidious.private.coffee",
+    "https://yewtu.be",
+    "https://inv.nadeko.net",
+    "https://invidious.nerdvpn.de",
+    "https://invidious.privacyredirect.com",
     "https://vid.puffyan.us",
-    "https://invidious.snopyta.org",
-    "https://iv.ggtyler.dev",
-    "https://invidious.fdn.fr",
     "https://invidious.tiekoetter.com",
     "https://invidious.flokinet.to",
-    "https://invidious.slipfox.xyz",
+    "https://inv.tux.pizza",
+    "https://invidious.private.coffee",
+    "https://iv.ggtyler.dev",
+    "https://invidious.fdn.fr",
+    "https://invidious.snopyta.org",
     "https://invidious-us.kavin.rocks",
-    "https://invidious.private.coffee",  # дубликат для надёжности
 ]
 
 YOUTUBE_PROXY_LIST = [p.strip() for p in getenv("YOUTUBE_PROXY_LIST", "").split(",") if p.strip()]
@@ -81,7 +70,7 @@ LOGGER_ID = int(getenv("LOGGER_ID", "-1003646583089"))
 
 OWNER_ID = int(getenv("OWNER_ID", "8557740388"))
 
-AUTO_LEAVING_ASSISTANT = bool(getenv("AUTO_LEAVING_ASSISTANT", False))
+AUTO_LEAVING_ASSISTANT = _bool_env("AUTO_LEAVING_ASSISTANT", False)
 ASSISTANT_LEAVE_TIME = int(getenv("ASSISTANT_LEAVE_TIME", 5400))
 
 SPOTIFY_CLIENT_ID = getenv("SPOTIFY_CLIENT_ID", "1c21247d714244ddbb09925dac565aed")
@@ -94,8 +83,8 @@ TG_VIDEO_FILESIZE_LIMIT = int(getenv("TG_VIDEO_FILESIZE_LIMIT", 2 * 1024 ** 3))
 
 PRIVATE_BOT_MODE_MEM = int(getenv("PRIVATE_BOT_MODE_MEM", 1))
 
-CACHE_DURATION = int(getenv("CACHE_DURATION", "86400"))
-CACHE_SLEEP = int(getenv("CACHE_SLEEP", "3600"))
+CACHE_DURATION = int(getenv("CACHE_DURATION", 7 * 24 * 3600))
+CACHE_SLEEP = int(getenv("CACHE_SLEEP", 4 * 3600))
 
 STRING1 = getenv("STRING_SESSION", "AgFHaGoAVHa9Q15n2IaDNygtcPNPGHBussJjD7XfLJjKV1b-sDdVsBUJ5SAPUoGx6LSJ9EugCx3uTvPNLoosVuiSDI8viGjPOp1sdN30utmvnCzyKIX0IEtPMzx38jkA3fBEWkfwJ-XziR9nkLUzXvn1I3SIVPj6FVPUSq3SW0qO-0nAPO0kIWZRzFTtRLldjDo67E2S3ge1V_dde4upSgJS6MrsWEY0FL6MYCpObLMZ__SGuY5Qq4exbJMGaCpwS5u_DtTuX-LOxMfte5JXR9FOGY3KxBD9UkRIUraQp2VD0PMacbj8bFNApDXwLr9FEjjch8xOydYQfRfL5CIws4dmsu8wxgAAAAH6ziPRAA")
 STRING2 = getenv("STRING_SESSION2", None)
@@ -109,7 +98,7 @@ lyrical = {}
 votemode = {}
 autoclean = []
 confirmer = {}
-file_cache: dict[str, float] = {}
+file_cache = {}
 
 START_IMG_URL = [
     "https://image2url.com/r2/default/images/1769269338835-d5ce1f25-55d6-45fc-b9ad-c04ae647827e.jpg",
@@ -128,7 +117,7 @@ PLAYLIST_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017
 TELEGRAM_AUDIO_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 TELEGRAM_VIDEO_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 STREAM_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
-SOUNCLOUD_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
+SOUNDCLOUD_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 YOUTUBE_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 SPOTIFY_ARTIST_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 SPOTIFY_ALBUM_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
@@ -140,9 +129,4 @@ def time_to_seconds(time):
     stringt = str(time)
     return sum(int(x) * 60 ** i for i, x in enumerate(reversed(stringt.split(":"))))
 
-DURATION_LIMIT = int(time_to_seconds(f"{DURATION_LIMIT_MIN}:360"))
-
-# Дополнительная отладка ключевых настроек
-print(f"[CONFIG] YOUTUBE_USE_PYTUBE: {YOUTUBE_USE_PYTUBE}")
-print(f"[CONFIG] Invidious instances count: {len(YOUTUBE_INVIDIOUS_INSTANCES)}")
-print(f"[CONFIG] First Invidious: {YOUTUBE_INVIDIOUS_INSTANCES[0] if YOUTUBE_INVIDIOUS_INSTANCES else 'None'}")
+DURATION_LIMIT = int(time_to_seconds(f"{DURATION_LIMIT_MIN}:00"))
